@@ -1,21 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-
-type GoalTypeWithActivityAndDistance = {
-  id: number;
-  goal_distance: number;
-  goals: {
-    name: string;
-    goal_date: string;
-  } | null;
-  activity_types: {
-    activity: string;
-  } | null;
-  distance_measurements: {
-    measurement: string;
-    conversion_ratio: number;
-  } | null;
-};
+import { QueryData } from "@supabase/supabase-js";
 
 type GoalOption = {
   id: number;
@@ -45,12 +30,14 @@ export default async function Goals() {
     const distance_measurement = Number(formData.get("distance_measurement"));
     const goal_distance = Number(formData.get("goal_distance"));
 
-    await supabase.from("goal_distance_activity_link").insert({
-      goal,
-      activity,
-      distance_measurement,
-      goal_distance,
-    });
+    const { error } = await supabase
+      .from("goal_distance_activity_link")
+      .insert({
+        goal,
+        activity,
+        distance_measurement,
+        goal_distance,
+      });
 
     if (error) {
       throw new Error(error.message);
@@ -59,28 +46,50 @@ export default async function Goals() {
     revalidatePath("/goals");
   }
 
-  //first create the client
   const supabase = await createClient();
 
-  //query and build the data for GoalTypeWithActivityAndDistance
-  const { data, error } = await supabase.from("goal_distance_activity_link")
-    .select(`
-      id,
-      goal_distance, 
-      goal(name, goal_date), 
-      activity_types(activity), 
-      distance_measurements(measurement,conversion_ratio)`);
+  const goalLinksQuery = supabase.from("goal_distance_activity_link").select(`
+    id,
+    goal_distance,
+    goals:goal(name, goal_date),
+    activity_types(activity),
+    distance_measurements(measurement, conversion_ratio)
+  `);
 
-  //query and build the data for goal
+  type GoalLinks = QueryData<typeof goalLinksQuery>;
 
-  //grab the error and data
-  const goal = data as GoalTypeWithActivityAndDistance[] | null;
+  const { data: goalLinks, error } = await goalLinksQuery;
 
-  // check for error
+  const { data: goalsData, error: goalsError } = await supabase
+    .from("goals")
+    .select("id, name, goal_date")
+    .order("goal_date", { ascending: true });
 
-  if (error) {
-    return <pre>{JSON.stringify(error, null, 2)}</pre>;
+  const { data: activitiesData, error: activitiesError } = await supabase
+    .from("activity_types")
+    .select("id, activity")
+    .order("activity", { ascending: true });
+
+  const { data: distanceData, error: distanceError } = await supabase
+    .from("distance_measurements")
+    .select("id, measurement, conversion_ratio")
+    .order("measurement", { ascending: true });
+
+  if (error || goalsError || activitiesError || distanceError) {
+    return (
+      <pre>
+        {JSON.stringify(
+          error || goalsError || activitiesError || distanceError,
+          null,
+          2,
+        )}
+      </pre>
+    );
   }
+
+  const goalOptions = goalsData as GoalOption[] | null;
+  const activityOptions = activitiesData as ActivityOption[] | null;
+  const distanceOptions = distanceData as DistanceOption[] | null;
 
   function conversion(ratio: number, distance: number) {
     return distance / ratio;
@@ -89,27 +98,61 @@ export default async function Goals() {
   return (
     <main className="font-bold">
       <h1>Goals</h1>
-      {goal?.map((item) => (
+
+      {goalLinks?.map((item) => (
         <div key={item.id}>
-          {item.goal?.name} {item.goal?.goal_date} for{" "}
+          {item.goals?.name} {item.goals?.goal_date} for{" "}
           {item.activity_types?.activity}{" "}
           {item.distance_measurements?.measurement}{" "}
-          {conversion(
-            item.distance_measurements?.conversion_ratio!,
-            item.goal_distance!,
-          )}
+          {item.distance_measurements?.conversion_ratio != null
+            ? conversion(
+                item.distance_measurements.conversion_ratio,
+                item.goal_distance,
+              )
+            : null}
         </div>
       ))}
 
       <form action={addGoal}>
-        <input type="goal" placeholder="goal id" />
-        <input type="activity" placeholder="activity id" />
-        <input type="distance_measurement" placeholder="distance id" />
-        <input type="goal_distance" placeholder="distance amount" />
+        <select name="goal" required>
+          <option value="">Select goal</option>
+          {goalOptions?.map((goal) => (
+            <option key={goal.id} value={goal.id}>
+              {goal.name}
+              {goal.goal_date ? ` (${goal.goal_date})` : ""}
+            </option>
+          ))}
+        </select>
+
+        <select name="activity" required>
+          <option value="">Select activity</option>
+          {activityOptions?.map((activity) => (
+            <option key={activity.id} value={activity.id}>
+              {activity.activity}
+            </option>
+          ))}
+        </select>
+
+        <select name="distance_measurement" required>
+          <option value="">Select distance measurement</option>
+          {distanceOptions?.map((distance) => (
+            <option key={distance.id} value={distance.id}>
+              {distance.measurement}
+            </option>
+          ))}
+        </select>
+
+        <input
+          name="goal_distance"
+          type="number"
+          step="any"
+          min="0"
+          placeholder="distance amount"
+          required
+        />
+
         <button type="submit">add goal</button>
       </form>
     </main>
   );
-
-  //return the data
 }
