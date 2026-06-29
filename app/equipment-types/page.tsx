@@ -1,25 +1,29 @@
-import { createClient } from "@/lib/supabse/server";
+import { createClient } from "@/lib/supabase/server";
+import ActivityCard from "@/components/ActivityCard";
 
 export default async function EquipmentTypesPage() {
-    //first create the client
-    const supabase = await createClient();
-    const { data, error } = await supabase.from("equipment_types").select("equipment_type, activity_type");
-    //grab the error and data
+  //first create the client
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("equipment_types").select();
+  //grab the error and data
 
-    // check for error 
+  // check for error
 
-    if (error) {
-        return <pre>{JSON.stringify(error, null, 2)}</pre>;
-    }
+  if (error) {
+    return <pre>{JSON.stringify(error, null, 2)}</pre>;
+  }
 
-    return (
-        <main style={{ padding: "24px" }}>
-            <h1>Equipment Types</h1>
-            <pre>{JSON.stringify(data, null, 2)}</pre>
-        </main>
-    );
+  return (
+    <main style={{ padding: "24px" }}>
+      <h1>Equipment Types</h1>
 
-    //return the data
+      <div className="space-y-3 w-min text-center">
+        {data?.map((item) => (
+          <ActivityCard key={item.id} activity={item.equipment_type} />
+        ))}
+      </div>
+    </main>
+  );
 
-
+  //return the data
 }

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabse/server";
+import { createClient } from "@/lib/supabase/server";
 // anytime we want to access the database
 // we need to create a client instance, which is done by calling the createClient function
 
