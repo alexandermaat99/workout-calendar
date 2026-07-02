@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { addGoal, removeGoal } from "./actions";
+import DeleteGoalButton from "./DeleteGoalButton";
 
 // import the proper libraries
 
@@ -40,47 +41,15 @@ type GoalLinkRow = {
     conversion_ratio: number;
   } | null;
 };
-// but this type we're using to display the goals from the goal activity link table
+// A row from goal_distance_activity_link plus the related joined records
+// from goals, activity_types, and distance_measurements for display.
 
 export default async function Goals() {
   // this is the main function essentially creating the goals page
-  async function addGoal(formData: FormData) {
-    // the add goal function, it takes in the form data and inserts it into the database
-    "use server";
-    // using server not client
-
-    const supabase = await createClient();
-    // establish the connection using createClient
-
-    const goal = Number(formData.get("goal"));
-    const activity = Number(formData.get("activity"));
-    const distance_measurement = Number(formData.get("distance_measurement"));
-    const goal_distance = Number(formData.get("goal_distance"));
-    // we establish our constants using the data from the form, we grab them based on the name of the select field
-    // type cast them to numbers
-
-    const { error } = await supabase
-      .from("goal_distance_activity_link")
-      .insert({
-        goal,
-        activity,
-        distance_measurement,
-        goal_distance,
-      });
-    // attempt an insert and collect the error
-
-    if (error) {
-      throw new Error(error.message);
-    }
-    // if there was an error to collect, we display it
-
-    revalidatePath("/goals");
-    // rerender to show the new inserted values
-  }
 
   const supabase = await createClient();
-  // we're outside the add function, we establish a connection, since we're outside the function, no connection
-  // is active
+  // we're outside the add function, since we're outside the function
+  // Create a Supabase server client again for database queries in this request.
 
   const { data: goalLinksData, error } = await supabase.from(
     "goal_distance_activity_link",
@@ -94,26 +63,28 @@ export default async function Goals() {
   // we query the database, it will return data and error, data gets assigned to goalLinksData
 
   const goalLinks = goalLinksData as unknown as GoalLinkRow[] | null;
-  // defining a const called goalLinks which is an array? or null? Lost here
-  // we take goalLinksData which is the data from the query, we build it into an array? or it's null
+  // Tell TypeScript to treat the returned data as either:
+  // - an array of GoalLinkRow objects, or
+  // - null if no data was returned.
+  // This does not change the actual data at runtime; it only changes the TypeScript type.
 
   const { data: goalsData, error: goalsError } = await supabase
     .from("goals")
     .select("id, name, goal_date")
     .order("goal_date", { ascending: true });
-  // we grab the goalsData
+  // A single row from the goals table, used to populate the "goal" dropdown.
 
   const { data: activitiesData, error: activitiesError } = await supabase
     .from("activity_types")
     .select("id, activity")
     .order("activity", { ascending: true });
-  // we grab the activitiesData
+  // A single row from the activity_types table, used to populate the activity dropdown.
 
   const { data: distanceData, error: distanceError } = await supabase
     .from("distance_measurements")
     .select("id, measurement, conversion_ratio")
     .order("measurement", { ascending: true });
-  // we grab the distanceData
+  // A single row from the distance_measurements table, used to populate the distance dropdown.
 
   //grabbing these to be able to display the goals?
 
@@ -135,34 +106,59 @@ export default async function Goals() {
   const distanceOptions = distanceData as DistanceOption[] | null;
   // we take all the data from the queries and put them into arrays that we will use to display
   // the available options in the form
+  // this is type casting
+
+  // Assert the query results to the row shape we expect for each dropdown.
+  // Each value can be either an array of rows or null.
 
   function conversion(ratio: number, distance: number) {
     return distance / ratio;
   }
 
   return (
+    // the actual stuff that gets displayed
     <main className="font-bold">
       <h1>Goals</h1>
+      <div className="mb-5">
+        {" "}
+        {goalLinks?.map((item) => (
+          // if we have goalLinks, which we grabbed on line 97, we map them
+          // and display their data, going a conversion on one of the values
+          <div className="flex" key={item.id}>
+            {item.goals?.name} {item.goals?.goal_date} for{" "}
+            {item.activity_types?.activity}{" "}
+            {item.distance_measurements?.measurement}{" "}
+            {item.distance_measurements?.conversion_ratio != null
+              ? conversion(
+                  item.distance_measurements.conversion_ratio,
+                  item.goal_distance,
+                )
+              : null}
+            {/* <form className="pl-4" action={removeGoal.bind(null, item.id)}> */}
+            {/* we cannot just do action{removeGoal(item.id) because 
+                when the page renders, removeGoal would happen instantly} */}
+            {/* function () {return removeGoal(item.id);} */}
+            {/* bind essentally builds this function so it doens't run until the user
+              hits the delete button */}
+            <div className="pl-4">
+              {" "}
+              <DeleteGoalButton
+                action={removeGoal.bind(null, item.id)}
+                goalName={item.goals?.name}
+              />
+            </div>
+            {/* </form> */}
+          </div>
+        ))}
+      </div>
 
-      {goalLinks?.map((item) => (
-        <div key={item.id}>
-          {item.goals?.name} {item.goals?.goal_date} for{" "}
-          {item.activity_types?.activity}{" "}
-          {item.distance_measurements?.measurement}{" "}
-          {item.distance_measurements?.conversion_ratio != null
-            ? conversion(
-                item.distance_measurements.conversion_ratio,
-                item.goal_distance,
-              )
-            : null}
-        </div>
-      ))}
-
+      {/* here we build data that we're submitting in the form */}
       <form action={addGoal}>
         <select name="goal" required defaultValue="">
           <option value="" disabled>
             Select goal
           </option>
+          {/* if we have those goal options, grabbed on line 103, then we map them as the otpions */}
           {goalOptions?.map((goal) => (
             <option key={goal.id} value={goal.id}>
               {goal.name}
@@ -170,7 +166,6 @@ export default async function Goals() {
             </option>
           ))}
         </select>
-
         <select name="activity" required defaultValue="">
           <option value="" disabled>
             Select activity
@@ -181,7 +176,6 @@ export default async function Goals() {
             </option>
           ))}
         </select>
-
         <select name="distance_measurement" required defaultValue="">
           <option value="" disabled>
             Select distance measurement
@@ -192,7 +186,6 @@ export default async function Goals() {
             </option>
           ))}
         </select>
-
         <input
           name="goal_distance"
           type="number"
