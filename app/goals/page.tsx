@@ -138,7 +138,7 @@ export default async function Goals() {
             {/* we cannot just do action{removeGoal(item.id) because 
                 when the page renders, removeGoal would happen instantly} */}
             {/* function () {return removeGoal(item.id);} */}
-            {/* bind essentally builds this function so it doens't run until the user
+            {/* bind essentially builds this function so it doesn't run until the user
               hits the delete button */}
             <div className="pl-4">
               {" "}
@@ -158,7 +158,7 @@ export default async function Goals() {
           <option value="" disabled>
             Select goal
           </option>
-          {/* if we have those goal options, grabbed on line 103, then we map them as the otpions */}
+          {/* if we have those goal options, grabbed on line 103, then we map them as the options */}
           {goalOptions?.map((goal) => (
             <option key={goal.id} value={goal.id}>
               {goal.name}

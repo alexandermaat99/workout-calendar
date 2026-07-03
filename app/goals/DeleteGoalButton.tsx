@@ -42,7 +42,7 @@ export default function DeleteGoalButton({
   // to change the state, setOpen(true)
 
   const dialogRef = useRef<HTMLDialogElement | null>(null);
-  //   “Keep a reference to the real <dialog> element in the browser.”
+  //   “Keep a reference to the actual <dialog> element in the browser.”
   //   “Create a special React object whose .current will hold a pointer to the <dialog>
   // in the DOM, and keep that pointer stable across renders.”
   // This is so we can keep a reference to the actual dialog element so we can control it.
@@ -52,29 +52,42 @@ export default function DeleteGoalButton({
   // If the dialog exists, open it when open is true, and close it when open is false.”
   useEffect(() => {
     const dialog = dialogRef.current;
-    // grab the actual current state of the HTMLDialogElement
+    // naming a constant called dialog that grabs the current state of the dialog element
+    // now dialog == the actual dialog
+
     if (!dialog) return;
+    // if there is no dialog, aka the reference is still null, we exit, this is a safety because if we keep going,
+    // trying to read the null will break it
 
     if (open) {
+      //if the open state is true
       dialog.showModal();
+      //we set the dialog element to .showModal which makes the dialog element visible
     } else if (dialog.open) {
+      //else if the state is false and the dialog is currently open
       dialog.close();
+      // we close it
     }
   }, [open]);
+  // this tells react when to run the useEffect code, this is the dependency array
+  // this code runs after render, then reruns whenever the open state changes
 
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}>
         delete
       </button>
+      {/* the button is always rendered, when it's clicked, we set the open status using setOpen to true, when this happens, useEffect is run */}
 
       <dialog ref={dialogRef}>
+        {/* the ref is how it knows it's this specific dialog element */}
         <p>Are you sure?</p>
 
         <button type="button" onClick={() => setOpen(false)}>
           Cancel
         </button>
 
+        {/* the action that gets submitted on submit is fed into DeleteGoalButton */}
         <form action={action}>
           <button type="submit">Confirm delete</button>
         </form>
