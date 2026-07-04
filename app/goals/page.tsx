@@ -134,12 +134,6 @@ export default async function Goals() {
                   item.goal_distance,
                 )
               : null}
-            {/* <form className="pl-4" action={removeGoal.bind(null, item.id)}> */}
-            {/* we cannot just do action{removeGoal(item.id) because 
-                when the page renders, removeGoal would happen instantly} */}
-            {/* function () {return removeGoal(item.id);} */}
-            {/* bind essentially builds this function so it doesn't run until the user
-              hits the delete button */}
             <div className="pl-4">
               {" "}
               <DeleteGoalButton
