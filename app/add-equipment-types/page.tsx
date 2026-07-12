@@ -1,5 +1,10 @@
 //import libraries
 import { createClient } from "@/lib/supabase/server";
+import {
+  addEquipmentType,
+  removeEquipmentType,
+} from "@/app/add-equipment-types/actions";
+import DeleteEquipmentTypeButton from "./DeleteEquipmentTypeButton";
 
 //establish types
 type ActivityOption = {
@@ -46,14 +51,22 @@ export default async function AddEquipmentTypes() {
     <main className="font-bold">
       <div className="mb-5">
         <div className="flex">Equipment Types for Activity</div>
+
         {equipmentLinks?.map((item) => (
           <div className="flex" key={item.id}>
             {item.equipment_type} {"for"} {item.activity_types.activity}
+            <div className="pl-4">
+              <DeleteEquipmentTypeButton
+                key={item.id}
+                action={removeEquipmentType.bind(null, item.id)}
+                equipmentId={item.id}
+              />
+            </div>
           </div>
         ))}
       </div>
 
-      <form action="{addEquipmentType}">
+      <form action={addEquipmentType}>
         <input
           name="equipment_type"
           type="text"
@@ -64,6 +77,7 @@ export default async function AddEquipmentTypes() {
           <option value="" disabled>
             select activity
           </option>
+
           {activityOptions?.map((activity) => (
             <option key={activity.id} value={activity.id}>
               {activity.activity}

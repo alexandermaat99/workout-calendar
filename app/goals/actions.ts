@@ -4,6 +4,28 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function addGoal(formData: FormData) {
+  const supabase = await createClient();
+
+  const name = String(formData.get("name"));
+  const goal_date = formData.get("goal_date");
+
+  const { data, error } = await supabase
+    .from("goals")
+    .insert({ name, goal_date });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  revalidatePath("/goals");
+}
+
+export async function pluralize(word: string, count: number) {
+  if (count > 1) return `${word}S`;
+  if (count < 1) return `of a ${word}`;
+  return word;
+}
+
+export async function addGoalActivity(formData: FormData) {
   // the add goal function, it takes in the form data and inserts it into the database
   "use server";
   // using server not client

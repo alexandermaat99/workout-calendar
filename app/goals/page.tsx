@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { addGoal, removeGoal } from "./actions";
+import { addGoal, addGoalActivity, pluralize, removeGoal } from "./actions";
 import DeleteGoalButton from "./DeleteGoalButton";
 
 // import the proper libraries
@@ -121,33 +121,56 @@ export default async function Goals() {
       <h1>Goals</h1>
       <div className="mb-5">
         {" "}
-        {goalLinks?.map((item) => (
-          // if we have goalLinks, which we grabbed on line 97, we map them
-          // and display their data, going a conversion on one of the values
-          <div className="flex" key={item.id}>
-            {item.goals?.name} {item.goals?.goal_date} for{" "}
-            {item.activity_types?.activity}{" "}
-            {item.distance_measurements?.measurement}{" "}
-            {item.distance_measurements?.conversion_ratio != null
+        {goalLinks?.map((item) => {
+          const convertedDistance =
+            item.distance_measurements?.conversion_ratio != null
               ? conversion(
                   item.distance_measurements.conversion_ratio,
                   item.goal_distance,
                 )
-              : null}
-            <div className="pl-4">
-              {" "}
+              : 0;
+          // if we have goalLinks, which we grabbed on line 97, we map them
+          // and display their data, going a conversion on one of the values
+
+          return (
+            <div className="flex items-center gap-2" key={item.id}>
+              <span>{item.goals?.name}</span>
+              <span>{item.goals?.goal_date}</span>
+              <span>{item.activity_types?.activity}</span>
+
+              {item.distance_measurements?.conversion_ratio != null &&
+              item.distance_measurements?.measurement != null ? (
+                <span>
+                  {convertedDistance}{" "}
+                  {pluralize(
+                    item.distance_measurements.measurement,
+                    convertedDistance,
+                  )}
+                </span>
+              ) : null}
+
               <DeleteGoalButton
                 action={removeGoal.bind(null, item.id)}
                 goalName={item.goals?.name}
               />
             </div>
-            {/* </form> */}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* here we build data that we're submitting in the form */}
       <form action={addGoal}>
+        <input type="text" name="name" required placeholder="Goal Name" />
+        <input
+          type="date"
+          required
+          name="goal_date"
+          placeholder="what's the date of your goal"
+        />
+        <button type="submit">Add Goal</button>
+      </form>
+
+      {/* here we build data that we're submitting in the form */}
+      <form action={addGoalActivity}>
         <select name="goal" required defaultValue="">
           <option value="" disabled>
             Select goal
@@ -170,6 +193,14 @@ export default async function Goals() {
             </option>
           ))}
         </select>
+        <input
+          name="goal_distance"
+          type="number"
+          step="any"
+          min="0"
+          placeholder="distance amount"
+          required
+        />
         <select name="distance_measurement" required defaultValue="">
           <option value="" disabled>
             Select distance measurement
@@ -180,16 +211,8 @@ export default async function Goals() {
             </option>
           ))}
         </select>
-        <input
-          name="goal_distance"
-          type="number"
-          step="any"
-          min="0"
-          placeholder="distance amount"
-          required
-        />
 
-        <button type="submit">add goal</button>
+        <button type="submit">Add Goal Activity</button>
       </form>
     </main>
   );

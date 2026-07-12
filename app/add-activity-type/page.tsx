@@ -19,7 +19,7 @@ async function addActivityType(formData: FormData) {
   const supabase = await createClient();
 
   const { error } = await supabase.from("activity_types").insert({
-    activity: activity.trim(),
+    activity: activity.trim().toUpperCase(),
   });
   // we try to insert something into the activity column of activity_types, if an error is returned
   // we store is in the const called error, we don't care about data returning bc we're inserting data
